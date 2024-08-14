@@ -3,6 +3,7 @@ package com.jomiroid.recoderapp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Bundle
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var recoder: MediaRecorder? = null
+    private var player: MediaPlayer? = null
     private var fileName: String = ""
     private var state: State = State.RELEASE
 
@@ -47,6 +49,31 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 State.PLAYING -> {}
+            }
+        }
+
+        binding.playButton.setOnClickListener {
+            when (state) {
+                State.RELEASE -> {
+                    onPlay(true)
+                }
+                State.PLAYING -> {
+                    onPlay(false)
+                }
+                else -> {
+                    // Do nothing
+                }
+            }
+        }
+
+        binding.stopButton.setOnClickListener {
+            when (state) {
+                State.PLAYING -> {
+                    onPlay(false)
+                }
+                else -> {
+                    // Do nothing
+                }
             }
         }
     }
@@ -79,11 +106,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun onRecord(start: Boolean) = if (start) {
-        startRecording()
-    } else {
-        stopRecording()
-    }
+    private fun onRecord(start: Boolean) = if (start) startRecording() else stopRecording()
+    private fun onPlay(start: Boolean) = if (start) startPlay() else stopPlay()
 
     private fun startRecording() {
         state = State.RECORDING
@@ -97,7 +121,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 prepare()
             } catch (e: IOException) {
-                Log.e("App", "prepare() failed $e")
+                Log.e("App", "media recoder prepare() failed $e")
             }
                 start()
         }
@@ -128,6 +152,37 @@ class MainActivity : AppCompatActivity() {
         )
         binding.playButton.isEnabled = true
         binding.playButton.alpha = 1.0f
+    }
+
+    private fun startPlay() {
+        state = State.PLAYING
+
+        player = MediaPlayer().apply {
+            try {
+                setDataSource(fileName)
+                prepare()
+            } catch (e: IOException) {
+                Log.e("App", "media player prepare() failed $e")
+            }
+            start()
+        }
+
+        player?.setOnCompletionListener {
+            stopPlay()
+        }
+
+        binding.recordButton.isEnabled = false
+        binding.recordButton.alpha = 0.3f
+    }
+
+    private fun stopPlay() {
+        state = State.RELEASE
+
+        player?.release()
+        player = null
+
+        binding.recordButton.isEnabled = true
+        binding.recordButton.alpha = 1.0f
     }
 
     private fun showPermissionRationalDialog() {
