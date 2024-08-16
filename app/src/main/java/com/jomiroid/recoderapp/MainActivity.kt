@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import com.jomiroid.recoderapp.databinding.ActivityMainBinding
 import java.io.IOException
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnTimerTickListener {
     companion object {
         private const val REQUEST_AUDIO_CODE = 200
     }
@@ -24,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     private enum class State {
         RELEASE, RECORDING, PLAYING
     }
+
+    private lateinit var timer: Timer
 
     private lateinit var binding: ActivityMainBinding
     private var recoder: MediaRecorder? = null
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         fileName = "${externalCacheDir?.absolutePath}/audiorecodertest.3gp"
+        timer = Timer(this)
 
         binding.recordButton.setOnClickListener {
             when (state) {
@@ -125,6 +128,9 @@ class MainActivity : AppCompatActivity() {
             }
                 start()
         }
+        timer.start()
+
+        recoder?.maxAmplitude?.toFloat()
 
         binding.recordButton.setImageDrawable(
             ContextCompat.getDrawable(
@@ -142,6 +148,9 @@ class MainActivity : AppCompatActivity() {
             release()
         }
         recoder = null
+
+        timer.stop()
+
         state = State.RELEASE
 
         binding.recordButton.setImageDrawable(
@@ -238,5 +247,9 @@ class MainActivity : AppCompatActivity() {
                 showPermissionSettingDialog()
             }
         }
+    }
+
+    override fun onTick(duration: Long) {
+        binding.waveformView.addAmplitude(recoder?.maxAmplitude?.toFloat() ?: 0f)
     }
 }
